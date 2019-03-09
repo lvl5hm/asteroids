@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define offsetof(s,m) __builtin_offsetof(s,m)
+
 #include <math.h>
 #include <float.h>
 

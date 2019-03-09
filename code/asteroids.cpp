@@ -17,7 +17,7 @@ TODO:
 #define COLOR_RED v4(1, 0, 0, 1)
 
 
-rect2 polygon_to_aabb(ShapePolygon poly)
+rect2 polygon_to_aabb(Polygon poly)
 {
   rect2 result = inverted_infinity_rect2();
   for (u32 vertex_index = 0;
@@ -81,9 +81,9 @@ void shuffle_array(RandomSequence *rand, f32 *array, i32 count)
   }
 }
 
-ShapePolygon generate_random_convex_polygon(RandomSequence *rand, u32 count, f32 scale)
+Polygon generate_random_convex_polygon(RandomSequence *rand, u32 count, f32 scale)
 {
-  assert(count <= array_count(((ShapePolygon *)0)->vertices));
+  assert(count <= array_count(((Polygon *)0)->vertices));
   f32 *x_coords = temp_alloc_array(f32, count);
   f32 *y_coords = temp_alloc_array(f32, count);
   
@@ -182,7 +182,7 @@ ShapePolygon generate_random_convex_polygon(RandomSequence *rand, u32 count, f32
   }
   
   
-  ShapePolygon result;
+  Polygon result;
   result.vertices[0] = v2(0, 0);
   result.count = 1;
   
@@ -269,7 +269,7 @@ Entity *add_asteroid(State *state, v2 p, f32 scale)
   RandomSequence *s = &state->seed;
   Entity *e = add_entity(state, EntityType_ASTEROID);
   
-  ShapePolygon *poly = &e->shape;
+  Polygon *poly = &e->shape;
   *poly = generate_random_convex_polygon(&state->seed, 
                                          random_range_i32(&state->seed, 4, 16), 1.0f);
   
@@ -288,7 +288,7 @@ Entity *add_bullet(State *state, v2 p, v2 velocity, f32 angle)
 {
   Entity *e = add_entity(state, EntityType_BULLET);
   
-  ShapePolygon *poly = &e->shape;
+  Polygon *poly = &e->shape;
   poly->count = 4;
   poly->vertices[0] = v2(-0.2f, -0.2f);
   poly->vertices[1] = v2(-0.2f, 0.2f);
@@ -314,7 +314,7 @@ Entity *add_temporary_clone(State *state, Entity *e, v2 p)
 }
 
 // NOTE(lvl5): collision stuff
-RangeF32 project_polygon_vertices_on_normal(ShapePolygon poly, v2 normal)
+RangeF32 project_polygon_vertices_on_normal(Polygon poly, v2 normal)
 {
   RangeF32 result = inverted_range_f32();
   
@@ -337,7 +337,7 @@ RangeF32 project_polygon_vertices_on_normal(ShapePolygon poly, v2 normal)
   return result;
 }
 
-b32 intersection_along_normal(ShapePolygon a, ShapePolygon b, v2 normal)
+b32 intersection_along_normal(Polygon a, Polygon b, v2 normal)
 {
   // NOTE(lvl5): calculate projections of every vertex of both shapes on the
   // normal and find min and max of both shapes
@@ -355,7 +355,7 @@ b32 intersection_along_normal(ShapePolygon a, ShapePolygon b, v2 normal)
   return true;
 }
 
-b32 test_polygon_normals(ShapePolygon a, ShapePolygon b)
+b32 test_polygon_normals(Polygon a, Polygon b)
 {
   for (u32 start_vertex_index = 0;
        start_vertex_index < a.count;
@@ -379,7 +379,7 @@ b32 test_polygon_normals(ShapePolygon a, ShapePolygon b)
   return true;
 }
 
-b32 polygons_intersect(ShapePolygon a, ShapePolygon b)
+b32 polygons_intersect(Polygon a, Polygon b)
 {
   
   if (!test_polygon_normals(a, b) ||
@@ -543,7 +543,7 @@ GAME_UPDATE(game_update)
       Entity *zero_entity = add_entity(state, EntityType_NONE);
       
       Entity *player = add_entity(state, EntityType_PLAYER);
-      ShapePolygon *poly = &player->shape;
+      Polygon *poly = &player->shape;
       poly->count = 3;
       poly->vertices[0] = v2(0.4f, 0.0f);
       poly->vertices[1] = v2(-0.4f, 0.3f);

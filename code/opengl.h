@@ -2,50 +2,12 @@
 #define OPENGL_H
 
 #include "utils.h"
+//#include <Windows.h>
+#define APIENTRY __stdcall
+#define WINGDIAPI __declspec(dllimport)
 
-#define GLboolean bool
-#define GLbyte i8
-#define GLshort i16
-#define GLint i32
-
-#define GLubyte u8
-#define GLushort u16
-#define GLuint u32
-#define GLbitfield u32
-#define GLenum u32
-#define GLsizei u32
-
-#define GLfloat f32
-#define GLdouble f64
-#define GLclampf f32
-#define GLclampd f64
-
-#include "KHR/glext.h"
-#include "KHR/wglext.h"
-
-#undef GLboolean
-#undef GLbyte
-#undef GLshort
-#undef GLint
-
-#undef GLubyte
-#undef GLushort
-#undef GLuint
-#undef GLbitfield
-#undef GLenum
-#undef GLsizei
-
-#undef GLfloat
-#undef GLdouble
-#undef GLclampf
-#undef GLclampd
-
-
-#include <Windows.h>
 #include <GL/gl.h>
-
-
-PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
+#include "KHR/glext.h"
 
 PFNGLGENBUFFERSPROC glGenBuffers;
 PFNGLBINDBUFFERPROC glBindBuffer;
@@ -73,38 +35,6 @@ PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;
 PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
 PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
-
-void gl_load_functions()
-{
-#define load_opengl_proc(type, name) name = (type)wglGetProcAddress(#name)
-  load_opengl_proc(PFNWGLSWAPINTERVALEXTPROC, wglSwapIntervalEXT);
-  
-  load_opengl_proc(PFNGLBINDBUFFERPROC, glBindBuffer);
-  load_opengl_proc(PFNGLGENBUFFERSPROC, glGenBuffers);
-  load_opengl_proc(PFNGLBUFFERDATAPROC, glBufferData);
-  load_opengl_proc(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
-  load_opengl_proc(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
-  load_opengl_proc(PFNGLCREATESHADERPROC, glCreateShader);
-  load_opengl_proc(PFNGLSHADERSOURCEPROC, glShaderSource);
-  load_opengl_proc(PFNGLCOMPILESHADERPROC, glCompileShader);
-  load_opengl_proc(PFNGLGETSHADERIVPROC, glGetShaderiv);
-  load_opengl_proc(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
-  load_opengl_proc(PFNGLCREATEPROGRAMPROC, glCreateProgram);
-  load_opengl_proc(PFNGLATTACHSHADERPROC, glAttachShader);
-  load_opengl_proc(PFNGLLINKPROGRAMPROC, glLinkProgram);
-  load_opengl_proc(PFNGLVALIDATEPROGRAMPROC, glValidateProgram);
-  load_opengl_proc(PFNGLDELETESHADERPROC, glDeleteShader);
-  load_opengl_proc(PFNGLUSEPROGRAMPROC, glUseProgram);
-  load_opengl_proc(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback);
-  load_opengl_proc(PFNGLENABLEIPROC, glEnablei);
-  load_opengl_proc(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl);
-  load_opengl_proc(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation);
-  load_opengl_proc(PFNGLUNIFORM4FPROC, glUniform4f);
-  load_opengl_proc(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays);
-  load_opengl_proc(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
-  load_opengl_proc(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
-  load_opengl_proc(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays);
-}
 
 
 struct gl_ParseResult

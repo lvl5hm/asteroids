@@ -4,7 +4,8 @@
 #include "platform.h"
 #include "opengl.h"
 
-struct ShapePolygon 
+
+struct Polygon 
 {
   v2 vertices[16];
   u32 count;
@@ -40,13 +41,13 @@ enum RenderEntryType
 
 struct RenderEntryPolygon
 {
-  ShapePolygon shape;
+  Polygon shape;
   v4 color;
 };
 
 struct RenderEntryRect
 {
-  ShapePolygon shape;
+  Polygon shape;
   v4 color;
 };
 
@@ -104,9 +105,9 @@ Transform translate(Transform t, v2 p)
   return result;
 }
 
-ShapePolygon transform_polygon(ShapePolygon s, Transform t)
+Polygon transform_polygon(Polygon s, Transform t)
 {
-  ShapePolygon result;
+  Polygon result;
   result.count = s.count;
   
   for (u32 vertex_index = 0;
@@ -151,7 +152,7 @@ void *push_render_entry_(RenderGroup *group, RenderEntryType type, u32 size)
 }
 
 
-void push_polygon(RenderGroup *group, ShapePolygon polygon, Transform t, v4 color)
+void push_polygon(RenderGroup *group, Polygon polygon, Transform t, v4 color)
 {
   RenderEntryPolygon *entry = push_render_entry(group, Polygon);
   entry->shape = transform_polygon(transform_polygon(polygon, t), 
@@ -159,7 +160,7 @@ void push_polygon(RenderGroup *group, ShapePolygon polygon, Transform t, v4 colo
   entry->color = color;
 }
 
-rect2 polygon_to_rect2(ShapePolygon p)
+rect2 polygon_to_rect2(Polygon p)
 {
   assert(p.count == 4);
   rect2 result;
@@ -169,9 +170,9 @@ rect2 polygon_to_rect2(ShapePolygon p)
   return result;
 }
 
-ShapePolygon rect2_to_polygon(rect2 r)
+Polygon rect2_to_polygon(rect2 r)
 {
-  ShapePolygon result;
+  Polygon result;
   result.count = 4;
   result.vertices[0] = v2(r.min.x, r.min.y);
   result.vertices[1] = v2(r.min.x, r.max.y);
@@ -185,7 +186,7 @@ void push_rect(RenderGroup *group, rect2 rect, Transform t, v4 color)
 {
   RenderEntryRect *entry = push_render_entry(group, Rect);
   
-  ShapePolygon shape = rect2_to_polygon(rect);
+  Polygon shape = rect2_to_polygon(rect);
   entry->shape = transform_polygon(transform_polygon(shape, t), 
                                    group->transform);
   entry->color = color;

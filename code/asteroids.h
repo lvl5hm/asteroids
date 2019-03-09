@@ -49,7 +49,7 @@ struct Entity
   b32 exists;
   EntityType type;
   
-  ShapePolygon shape;
+  Polygon shape;
   Transform t;
   
   v2 velocity;

@@ -2,7 +2,43 @@
 #include "asteroids.cpp"
 #include "opengl.h"
 #include <xaudio2.h>
+#include <Windows.h>
+#include "KHR/wglext.h"
 
+
+
+void gl_load_functions()
+{
+#define load_opengl_proc(name) *(u64 *)&name = (u64)wglGetProcAddress(#name)
+  load_opengl_proc(glBindBuffer);
+  load_opengl_proc(glGenBuffers);
+  load_opengl_proc(glBufferData);
+  load_opengl_proc(glVertexAttribPointer);
+  load_opengl_proc(glEnableVertexAttribArray);
+  load_opengl_proc(glCreateShader);
+  load_opengl_proc(glShaderSource);
+  load_opengl_proc(glCompileShader);
+  load_opengl_proc(glGetShaderiv);
+  load_opengl_proc(glGetShaderInfoLog);
+  load_opengl_proc(glCreateProgram);
+  load_opengl_proc(glAttachShader);
+  load_opengl_proc(glLinkProgram);
+  load_opengl_proc(glValidateProgram);
+  load_opengl_proc(glDeleteShader);
+  load_opengl_proc(glUseProgram);
+  load_opengl_proc(glDebugMessageCallback);
+  load_opengl_proc(glEnablei);
+  load_opengl_proc(glDebugMessageControl);
+  load_opengl_proc(glGetUniformLocation);
+  load_opengl_proc(glUniform4f);
+  load_opengl_proc(glGenVertexArrays);
+  load_opengl_proc(glBindVertexArray);
+  load_opengl_proc(glDeleteBuffers);
+  load_opengl_proc(glDeleteVertexArrays);
+}
+
+
+PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 
 struct Win32AppState
 {
@@ -393,6 +429,7 @@ int CALLBACK WinMain(HINSTANCE instance,
   }
   
   gl_load_functions();
+  load_opengl_proc(wglSwapIntervalEXT);
   
   wglSwapIntervalEXT(1);
   
