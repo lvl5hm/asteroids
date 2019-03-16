@@ -63,7 +63,7 @@ ALLOCATOR(heap_allocator)
     
     case AllocatorMode_FREE:
     {
-      b32 success = VirtualFree(oldMemoryPtr, 0, MEM_RELEASE);
+      b32 success = VirtualFree(old_memory_ptr, 0, MEM_RELEASE);
       assert(success);
     } break;
     

@@ -192,9 +192,6 @@ void push_rect(RenderGroup *group, rect2 rect, Transform t, v4 color)
   entry->color = color;
 }
 
-DynamicArray(v2, V2Array);
-DynamicArray(u32, U32Array);
-DynamicArray(v4, V4Array);
 
 struct VertexInfo
 {
@@ -202,22 +199,21 @@ struct VertexInfo
   v4 color;
 };
 
-DynamicArray(VertexInfo, VertexInfoArray);
 
 void draw_render_group(RenderGroup *group, u32 shader)
 {
-  VertexInfoArray lines_vertex_infos;
-  init(&lines_vertex_infos, 200);
+  VertexInfo *lines_vertex_infos = 0;
+  sb_reserve(lines_vertex_infos, 200);
   
-  U32Array lines_indices;
-  init(&lines_indices, 400);
+  u32 *lines_indices = 0;
+  sb_reserve(lines_indices, 400);
   
   
-  VertexInfoArray rect_vertex_infos;
-  init(&rect_vertex_infos, 300);
+  VertexInfo *rect_vertex_infos = 0;
+  sb_reserve(rect_vertex_infos, 300);
   
-  U32Array rect_indices;
-  init(&rect_indices, 1200);
+  u32 *rect_indices = 0;
+  sb_reserve(rect_indices, 1200);
   
   Buffer *buffer = &group->buffer;
   
@@ -230,7 +226,7 @@ void draw_render_group(RenderGroup *group, u32 shader)
       {
         RenderEntryRect *entry =  pop_buffer(buffer, RenderEntryRect);
         
-        u32 start_index = rect_vertex_infos.count;
+        u32 start_index = sb_count(rect_vertex_infos);
         u32 vertex_index = 0;
         while(vertex_index < entry->shape.count)
         {
@@ -239,15 +235,15 @@ void draw_render_group(RenderGroup *group, u32 shader)
             VertexInfo info;
             info.p = entry->shape.vertices[vertex_index++];
             info.color = entry->color;
-            push(&rect_vertex_infos, info);
+            sb_push(rect_vertex_infos, info);
           }
           
-          push(&rect_indices, start_index+0);
-          push(&rect_indices, start_index+1);
-          push(&rect_indices, start_index+2);
-          push(&rect_indices, start_index+2);
-          push(&rect_indices, start_index+3);
-          push(&rect_indices, start_index+0);
+          sb_push(rect_indices, start_index+0);
+          sb_push(rect_indices, start_index+1);
+          sb_push(rect_indices, start_index+2);
+          sb_push(rect_indices, start_index+2);
+          sb_push(rect_indices, start_index+3);
+          sb_push(rect_indices, start_index+0);
         }
         
       } break;
@@ -256,7 +252,7 @@ void draw_render_group(RenderGroup *group, u32 shader)
       {
         RenderEntryPolygon *entry = pop_buffer(buffer, RenderEntryPolygon);
         
-        u32 start_index = lines_vertex_infos.count;
+        u32 start_index = sb_count(lines_vertex_infos);
         for (u32 vertex_index = 0;
              vertex_index < entry->shape.count;
              vertex_index++)
@@ -264,7 +260,7 @@ void draw_render_group(RenderGroup *group, u32 shader)
           VertexInfo info;
           info.p = entry->shape.vertices[vertex_index];
           info.color = entry->color;
-          push(&lines_vertex_infos, info);
+          sb_push(lines_vertex_infos, info);
           
           u32 current_index = vertex_index + start_index;
           u32 next_vertex_index = vertex_index + 1;
@@ -274,8 +270,8 @@ void draw_render_group(RenderGroup *group, u32 shader)
           }
           u32 next_index = next_vertex_index + start_index;
           
-          push(&lines_indices, current_index);
-          push(&lines_indices, next_index);
+          sb_push(lines_indices, current_index);
+          sb_push(lines_indices, next_index);
         }
       } break;
       
@@ -311,24 +307,24 @@ void draw_render_group(RenderGroup *group, u32 shader)
   
   // NOTE(lvl5): drawing lines
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, get_size(lines_vertex_infos), lines_vertex_infos.data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sb_size(lines_vertex_infos), lines_vertex_infos, GL_STATIC_DRAW);
   
   
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, get_size(lines_indices), lines_indices.data, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sb_size(lines_indices), lines_indices, GL_STATIC_DRAW);
   
-  glDrawElements(GL_LINES, lines_indices.count, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_LINES, sb_count(lines_indices), GL_UNSIGNED_INT, 0);
   
   
   // NOTE(lvl5): drawing rects
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, get_size(rect_vertex_infos), rect_vertex_infos.data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sb_size(rect_vertex_infos), rect_vertex_infos, GL_STATIC_DRAW);
   
   
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, get_size(rect_indices), rect_indices.data, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sb_size(rect_indices), rect_indices, GL_STATIC_DRAW);
   
-  glDrawElements(GL_TRIANGLES, rect_indices.count, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, sb_count(rect_indices), GL_UNSIGNED_INT, 0);
   
   glDeleteVertexArrays(1, &vao);
   glDeleteBuffers(1, &vbo);

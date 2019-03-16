@@ -1,26 +1,26 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#define offsetof(s,m) __builtin_offsetof(s,m)
-
 #include <math.h>
 #include <float.h>
 
-typedef unsigned __int8 u8;
-typedef unsigned __int16 u16;
-typedef unsigned __int32 u32;
-typedef unsigned __int64 u64;
+#define offsetof( st, m ) __builtin_offsetof( st, m )
 
-typedef __int8 i8;
-typedef __int16 i16;
-typedef __int32 i32;
-typedef __int64 i64;
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long int u64;
+
+typedef char i8;
+typedef short i16;
+typedef int i32;
+typedef long i64;
 typedef u8 byte;
 
 typedef float f32;
 typedef double f64;
 
-typedef __int32 b32;
+typedef int b32;
 
 #define PI 3.14159265359f
 
@@ -106,7 +106,7 @@ enum AllocatorMode
   AllocatorMode_REALLOC,
 };
 
-#define ALLOCATOR(name) byte* name(AllocatorMode mode, u64 size, u64 oldSize, void *oldMemoryPtr, void *allocator_data, u32 align)
+#define ALLOCATOR(name) byte* name(AllocatorMode mode, u64 size, void *old_memory_ptr, u64 old_size, void *allocator_data, u32 align)
 typedef ALLOCATOR(Allocator);
 
 byte *alloc(u64 size, u32 align = 32);
@@ -189,11 +189,31 @@ ALLOCATOR(arena_allocator)
   Arena *arena = (Arena *)allocator_data;
   
   byte *result = 0;
-  if (mode == AllocatorMode_ALLOCATE)
+  
+  switch (mode)
   {
-    assert(arena->mark + size <= arena->capacity);
-    result = (u8 *)arena->memory + arena->mark;
-    arena->mark += size;
+    case AllocatorMode_ALLOCATE:
+    {
+      assert(arena->mark + size <= arena->capacity);
+      result = (u8 *)arena->memory + arena->mark;
+      arena->mark += size;
+    } break;
+    
+    case AllocatorMode_FREE:
+    {
+      // NOTE(lvl5): arenas do not free
+    } break;
+    
+    case AllocatorMode_REALLOC:
+    {
+      assert(false);
+      assert(arena->mark + size <= arena->capacity);
+      result = (u8 *)arena->memory + arena->mark;
+      
+      arena->mark += size;
+    } break;
+    
+    invalid_default_case();
   }
   
   return result;
@@ -226,8 +246,6 @@ byte *alloc(u64 size, u32 align)
   return result;
 }
 
-struct Foo {};
-
 void copy_memory(void *dst, void *src, u64 size)
 {
   for (u64 i = 0; i < size; i++)
@@ -239,7 +257,7 @@ void copy_memory(void *dst, void *src, u64 size)
 ALLOCATOR(temp_allocator)
 {
   Arena *arena = &get_local_context()->temp_storage;
-  byte *result = arena_allocator(mode, size, oldSize, oldMemoryPtr, arena, align);
+  byte *result = arena_allocator(mode, size, old_memory_ptr, old_size, arena, align);
   assert(result);
   return result;
 }
@@ -279,6 +297,7 @@ void reset_temp_storage()
 
 // dynamic array
 
+#if 0
 #define DynamicArray(T, name) \
 struct name \
 { \
@@ -323,14 +342,119 @@ u32 get_size(name array) \
   u32 result = sizeof(T)*array.count; \
   return result; \
 }
+#endif
 
 
+struct SbHeader
+{
+  u32 count;
+  u32 capacity;
+  Allocator *allocator;
+};
+
+
+
+#define sb__header(array) ((SbHeader *)((byte *)(array) - sizeof(SbHeader)))
+#define sb_capacity(array) ((array) ? sb__header(array)->capacity : 0)
+#define sb_count(array) ((array) ? sb__header(array)->count : 0)
+#define sb_allocator(array) (sb__header(array)->allocator)
+#define sb_last(array) (&(array)[sb_count(array)-1])
+#define sb_size(array) (sb_count(array) ? sb_count(array)*sizeof(array[0]) : 0)
+
+#define sb__need_grow(array, n) (sb_count(array) + n >= sb_capacity(array)) 
+#define sb__grow(array, n) (*((void **)&(array)) = sb__growf((array), (n), sizeof(*(array))))
+
+#define sb__maybe_grow(array, n) (sb__need_grow(array, n) ? sb__grow(array, n) : 0)
+#define sb_push(array, item) (sb__maybe_grow(array, 1), (array)[sb__header(array)->count++] = item)
+
+#define sb_reserve(array, n) sb__maybe_grow((array), (n))
+
+
+void *sb__growf(void *array, u32 add_count, u32 item_size)
+{
+  u32 min_needed = sb_count(array) + add_count;
+  u32 double_capacity = sb_capacity(array)*2;
+  u32 min_capacity = double_capacity >= min_needed 
+    ? double_capacity 
+    : min_needed;
+  if (min_capacity < 8) min_capacity = 8;
+  
+  Allocator *allocator = array 
+    ? sb_allocator(array) 
+    : get_local_context()->allocator;
+  
+  byte *new_memory = allocator(AllocatorMode_ALLOCATE,
+                               min_capacity*item_size + sizeof(SbHeader),
+                               0, 0, 0, 32);
+  byte *new_array = new_memory + sizeof(SbHeader);
+  SbHeader *new_header = sb__header(new_array);
+  new_header->capacity = min_capacity;
+  new_header->count = sb_count(array);
+  new_header->allocator = allocator;
+  
+  copy_memory(new_array, array, sb_count(array)*item_size);
+  
+  return new_array;
+}
+
+
+u32 c_string_count(char *s)
+{
+  u32 result = 0;
+  while (*s++) result++;
+  return result;
+}
 
 struct String
 {
   char *data;
   u32 count;
+  
+  char operator[](u32 index) 
+  {
+    char result = data[index];
+    return result;
+  }
+  
+  template<size_t Size> String(const char (& ch)[Size])
+  {
+    data = (char *)ch;
+    count = Size-1;
+  }
+  
+  String() {};
 };
+
+b32 compare_string(String a, String b)
+{
+  if (a.count != b.count)
+  {
+    return false;
+  }
+  
+  u32 i = 0;
+  while (i < a.count)
+  {
+    if (a[i] != b[i])
+    {
+      return false;
+    }
+    i++;
+  }
+  return true;
+}
+
+bool operator==(String a, String b)
+{
+  bool result = compare_string(a, b);
+  return result;
+}
+
+bool operator!=(String a, String b)
+{
+  bool result = !(a == b);
+  return result;
+}
 
 #define const_string(symbols) make_string(symbols, array_count(symbols) - 1)
 String make_string(char *data, u32 count)
@@ -404,6 +528,93 @@ String concat(String a, String b)
   result.count = a.count + b.count;
   copy_memory(result.data, a.data, a.count);
   copy_memory(result.data + a.count, b.data, b.count);
+  return result;
+}
+
+b32 starts_with(String target, String substr)
+{
+  b32 result = find_index(target, substr) == 0;
+  return result;
+}
+
+f64 pow(f64 a, i64 n)
+{
+  f64 result = 1;
+  
+  if (n >= 0) {
+    for (i32 i = 0; i < n; i++)
+    {
+      result *= a;
+    }
+  }
+  else
+  {
+    for (i32 i = 0; i < -n; i++)
+    {
+      result /= a;
+    }
+  }
+  return result;
+}
+
+i64 floor_i64(f64 a)
+{
+  i64 result = (i64)a;
+  return result;
+}
+
+i64 string_to_i64(String s)
+{
+  i64 result = 0;
+  i64 power = 0;
+  while (s.count > 0)
+  {
+    char digit = s[s.count-1] - '0';
+    result += digit*floor_i64(pow(10, power));
+    s.count--;
+    power++;
+  }
+  return result;
+}
+
+
+f64 string_to_f64(String s)
+{
+  f64 result = 0.0f;
+  u32 index_of_dot = find_index(s, ".");
+  
+  i64 power = 0;
+  if (index_of_dot >= 0)
+  {
+    power = (i64)index_of_dot - (i64)s.count + 1;
+  }
+  
+  while (s.count > 0)
+  {
+    if (s[s.count-1] == '.') 
+    {
+      s.count--;
+      continue;
+    }
+    
+    char digit = s[s.count-1] - '0';
+    result += digit*pow(10, power);
+    s.count--;
+    power++;
+  }
+  
+  
+  return result;
+}
+
+void set_flag(u64 *flags, u64 flag)
+{
+  *flags |= flag;
+}
+
+b32 test_flag(u64 flags, u64 flag)
+{
+  b32 result = (b32)(flags & flag);
   return result;
 }
 
